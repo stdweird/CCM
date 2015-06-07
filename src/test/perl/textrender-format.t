@@ -12,12 +12,17 @@ BEGIN {
 }
 
 use Test::Quattor qw(format);
-use EDG::WP4::CCM::Format;
+use EDG::WP4::CCM::TextRender qw(ccm_format @CCM_FORMATS);
 use Test::Quattor::Object;
 use Test::Quattor::TextRender::Base;
 use XML::Parser;
 
 ok(EDG::WP4::CCM::CCfg::getCfgValue('json_typed'), 'json_typed (still) enabled');
+
+is_deeply(\@CCM_FORMATS, 
+          [qw(json pan pancxml yaml)],
+          "Expected supported CCM formats"
+    );
 
 my $cfg = get_config_for_profile("format");
 my ($el, $fmt);
@@ -27,17 +32,26 @@ my $log = Test::Quattor::Object->new();
 
 =pod
 
+unsupported format
+
+=cut
+
+$el = $cfg->getElement("/");
+ok(! defined(ccm_format('notasupportedformat', $el)), 
+   "ccm_format returns undef for unsupported format");
+
+=pod
+
 =head2 json
 
 =cut
 
 $el = $cfg->getElement("/");
-$fmt = EDG::WP4::CCM::Format->new('json', $el, log => $log);
-isa_ok($fmt, 'EDG::WP4::CCM::Format', "a EDG::WP4::CCM::Format instance");
+$fmt = ccm_format('json', $el);
+isa_ok($fmt, 'EDG::WP4::CCM::TextRender', "a EDG::WP4::CCM::TextRender instance");
 is("$fmt",
    '{"a":1,"b":1.5,"c":{"f":false,"t":true},"d":"test"}'."\n",
    "JSON format");
-ok(! $log->{LOGCOUNT}->{ERROR}, "No errors logged for JSON format");
 
 =pod
 
@@ -46,15 +60,13 @@ ok(! $log->{LOGCOUNT}->{ERROR}, "No errors logged for JSON format");
 =cut
 
 $el = $cfg->getElement("/");
-$fmt = EDG::WP4::CCM::Format->new('yaml', $el, log => $log);
-isa_ok($fmt, 'EDG::WP4::CCM::Format', "a EDG::WP4::CCM::Format instance");
+$fmt = ccm_format('yaml', $el);
+isa_ok($fmt, 'EDG::WP4::CCM::TextRender', "a EDG::WP4::CCM::TextRender instance");
 my $txt = "$fmt";
 $txt =~ s/\s//g; # squash all whitespace
 is($txt,
    "---a:1b:1.5c:f:falset:trued:test",
    "YAML format");
-ok(! $log->{LOGCOUNT}->{ERROR}, "No errors logged for YAML format");
-
 
 =pod
 
@@ -65,15 +77,13 @@ Test pan format (more tests in TT testsuite)
 =cut
 
 $el = $cfg->getElement("/");
-$fmt = EDG::WP4::CCM::Format->new('pan', $el, log => $log);
-isa_ok($fmt, 'EDG::WP4::CCM::Format', "a EDG::WP4::CCM::Format instance");
+$fmt = ccm_format('pan', $el);
+isa_ok($fmt, 'EDG::WP4::CCM::TextRender', "a EDG::WP4::CCM::TextRender instance");
 $txt = "$fmt";
 $txt =~ s/\s//g; # squash all whitespace
 is($txt,
    '"/a"=1;#long"/b"=1.5;#double"/c/f"=false;#boolean"/c/t"=true;#boolean"/d"="test";#string',
    "pan format");
-
-ok(! $log->{LOGCOUNT}->{ERROR}, "No errors logged for pan format");
 
 =pod
 
@@ -84,8 +94,8 @@ Test pancxml format (more tests in TT testsuite)
 =cut
 
 $el = $cfg->getElement("/");
-$fmt = EDG::WP4::CCM::Format->new('pancxml', $el, log => $log);
-isa_ok($fmt, 'EDG::WP4::CCM::Format', "a EDG::WP4::CCM::Format instance");
+$fmt = ccm_format('pancxml', $el);
+isa_ok($fmt, 'EDG::WP4::CCM::TextRender', "a EDG::WP4::CCM::TextRender instance");
 
 my $p = XML::Parser->new(Style => 'Tree');
 my $t;
@@ -97,7 +107,5 @@ $txt =~ s/\s//g; # squash all whitespace
 is($txt,
    '<?xmlversion="1.0"encoding="UTF-8"?><nlistformat="pan"name="profile"><longname="a">1</long><doublename="b">1.5</double><nlistname="c"><booleanname="f">false</boolean><booleanname="t">true</boolean></nlist><stringname="d">test</string></nlist>',
    "pancxml format");
-
-ok(! $log->{LOGCOUNT}->{ERROR}, "No errors logged for pan format");
 
 done_testing();
