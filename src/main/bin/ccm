@@ -1,0 +1,38 @@
+#!/usr/bin/perl -w
+# ${license-info}
+# ${developer-info}
+# ${author-info}
+# ${build-info}
+
+package ccm;
+
+use strict;
+use warnings;
+
+# required for CAF
+BEGIN {
+    unshift(@INC, '/usr/lib/perl');
+}
+
+# minimal Path
+$ENV{PATH} = join(":", qw(/bin /usr/bin /sbin /usr/sbin));
+
+# fix umask
+umask (022);
+
+use LC::Exception qw(throw_error);
+
+our ($this_app);
+
+# unbuffer STDOUT & STDERR
+autoflush STDOUT 1;
+autoflush STDERR 1;
+
+# initialise main class
+unless ($this_app = EDG::WP4::CCM::App::Options->new($0, @ARGV)) {
+    throw_error("Cannot start application");
+    exit (1);
+}
+
+# End with success
+exit (0);
